@@ -81,8 +81,8 @@
         <header class="mb-6">
             <h1 class="text-3xl md:text-4xl font-bold text-center mb-2">Daily YouTube Rankings TOP 100</h1>
             <p id="update-time" class="text-center text-gray-500">Data updated: </p>
-            <!-- Country Selector & Cache Clear -->
-            <div class="mt-4 max-w-sm mx-auto flex items-center space-x-2">
+            <!-- Country Selector -->
+            <div class="mt-4 max-w-sm mx-auto">
                  <div class="flex-grow">
                     <label for="country-select" class="sr-only">Select Country</label>
                     <select id="country-select" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
@@ -138,11 +138,6 @@
                         <option value="UA">Ukraine</option>
                     </select>
                 </div>
-                <button id="clear-cache-btn" title="Clear Cache & Refresh" class="p-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
-                    </svg>
-                </button>
             </div>
         </header>
 
@@ -173,7 +168,6 @@
 
         const videoContainer = document.getElementById('videos-grid');
         const countrySelect = document.getElementById('country-select');
-        const clearCacheBtn = document.getElementById('clear-cache-btn');
         const loader = document.getElementById('loader');
         const mainContent = document.getElementById('main-content');
         const updateTimeEl = document.getElementById('update-time');
@@ -191,20 +185,6 @@
 
         countrySelect.addEventListener('change', (e) => {
             loadRankingData(e.target.value, false);
-        });
-        
-        clearCacheBtn.addEventListener('click', () => {
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('youtube_rank_')) {
-                    keysToRemove.push(key);
-                }
-            }
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-            
-            alert('Browser cache has been cleared. Fetching new data.');
-            loadRankingData(countrySelect.value, true);
         });
 
         // Separated the modal closing logic into a function
@@ -235,13 +215,29 @@
             const cacheKey = `youtube_rank_top100_${regionCode}`; 
             
             try {
+                // When "forceRefresh" is true, skip checking cache and fetch directly.
+                if (forceRefresh) {
+                    throw new Error("Force refresh triggered");
+                }
+
                 const cachedData = JSON.parse(localStorage.getItem(cacheKey));
                 
-                if (!forceRefresh && cachedData && cachedData.date === today) {
+                if (cachedData && cachedData.date === today) {
                     console.log(`[${regionCode}] Using cached data.`);
                     displayData(cachedData.data, cachedData.updateTime);
                 } else {
-                    console.log(`[${regionCode}] Fetching new data from API. (Force Refresh: ${forceRefresh})`);
+                    // If cache doesn't exist or is outdated, throw an error to fall into the catch block for API fetching.
+                    throw new Error("Cache invalid or not found");
+                }
+            } catch (error) {
+                if (error.message.includes("Force refresh") || error.message.includes("Cache invalid")) {
+                     console.log(`[${regionCode}] Fetching new data from API. Reason: ${error.message}`);
+                } else {
+                    console.error("Error loading data:", error);
+                    // Handle other potential errors during cache retrieval if any
+                }
+
+                try {
                     const videos = await fetchVideosFromAPI(regionCode);
                     const updateTime = new Date().toLocaleString('en-US');
 
@@ -253,17 +249,17 @@
                     localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
                     
                     displayData(videos, updateTime);
+                } catch (apiError) {
+                    console.error("API Fetch Error:", apiError);
+                    let alertMessage = `Failed to load data. Please try again later.`;
+                    if (apiError.message.includes('API key not valid')) {
+                        alertMessage = 'Failed to load data: The API key is not valid. Please check the API_KEY in the code.';
+                    } else if (apiError.message.includes('quotaExceeded')) {
+                        alertMessage = 'Failed to load data: YouTube API quota exceeded. Please try again tomorrow.';
+                    }
+                    alert(alertMessage);
+                    hideLoader();
                 }
-            } catch (error) {
-                console.error("Error loading data:", error);
-                let alertMessage = `Failed to load data. Please try again later.`;
-                if (error.message.includes('API key not valid')) {
-                    alertMessage = 'Failed to load data: The API key is not valid. Please check the API_KEY in the code.';
-                } else if (error.message.includes('quotaExceeded')) {
-                    alertMessage = 'Failed to load data: YouTube API quota exceeded. Please try again tomorrow.';
-                }
-                alert(alertMessage);
-                hideLoader();
             }
         }
         
