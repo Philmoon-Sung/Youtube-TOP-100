@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily YouTube Rankings</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Loading Spinner Style */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #3498db;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Scrollbar Style */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Custom styles for 16:9 aspect ratio */
+        .player-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio (9 / 16 = 0.5625) */
+            background-color: #000;
+        }
+        .player-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Modal: Video Player -->
+    <div id="player-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden items-center justify-center p-4">
+        <div class="relative w-full max-w-4xl">
+            <!-- Container to maintain 16:9 aspect ratio -->
+            <div class="player-container rounded-lg overflow-hidden">
+                <div id="player"></div>
+            </div>
+            <!-- Close Button -->
+            <button id="close-modal-btn" class="absolute -top-2 -right-2 md:-top-3 md:-right-3 bg-white rounded-full p-1.5 text-gray-800 hover:bg-gray-200 transition-colors z-10">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-6">
+        <!-- Header -->
+        <header class="mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-center mb-2">Daily YouTube Rankings TOP 100</h1>
+            <p id="update-time" class="text-center text-gray-500">Data updated: </p>
+            <!-- Country Selector & Cache Clear -->
+            <div class="mt-4 max-w-sm mx-auto flex items-center space-x-2">
+                 <div class="flex-grow">
+                    <label for="country-select" class="sr-only">Select Country</label>
+                    <select id="country-select" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="WW" selected>Worldwide</option>
+                        <option value="US">United States</option>
+                        <option value="KR">South Korea</option>
+                        <option value="IN">India</option>
+                        <option value="JP">Japan</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="BR">Brazil</option>
+                        <option value="DE">Germany</option>
+                        <option value="RU">Russia</option>
+                        <option value="FR">France</option>
+                        <option value="MX">Mexico</option>
+                        <option value="ID">Indonesia</option>
+                        <option value="TR">Turkey</option>
+                        <option value="CA">Canada</option>
+                        <option value="IT">Italy</option>
+                        <option value="ES">Spain</option>
+                        <option value="AU">Australia</option>
+                        <option value="TH">Thailand</option>
+                        <option value="VN">Vietnam</option>
+                        <option value="TW">Taiwan</option>
+                        <option value="PH">Philippines</option>
+                        <option value="PL">Poland</option>
+                        <option value="NL">Netherlands</option>
+                        <option value="SA">Saudi Arabia</option>
+                        <option value="AR">Argentina</option>
+                        <option value="CO">Colombia</option>
+                        <option value="SE">Sweden</option>
+                        <option value="BE">Belgium</option>
+                        <option value="CH">Switzerland</option>
+                        <option value="AT">Austria</option>
+                        <option value="NO">Norway</option>
+                        <option value="DK">Denmark</option>
+                        <option value="FI">Finland</option>
+                        <option value="IE">Ireland</option>
+                        <option value="NZ">New Zealand</option>
+                        <option value="MY">Malaysia</option>
+                        <option value="SG">Singapore</option>
+                        <option value="HK">Hong Kong</option>
+                        <option value="AE">United Arab Emirates</option>
+                        <option value="ZA">South Africa</option>
+                        <option value="EG">Egypt</option>
+                        <option value="NG">Nigeria</option>
+                        <option value="CL">Chile</option>
+                        <option value="PE">Peru</option>
+                        <option value="RO">Romania</option>
+                        <option value="CZ">Czech Republic</option>
+                        <option value="GR">Greece</option>
+                        <option value="PT">Portugal</option>
+                        <option value="HU">Hungary</option>
+                        <option value="UA">Ukraine</option>
+                    </select>
+                </div>
+                <button id="clear-cache-btn" title="Clear Cache & Refresh" class="p-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Loading Indicator -->
+        <div id="loader" class="flex justify-center items-center h-64">
+            <div class="loader"></div>
+        </div>
+
+        <!-- Main Content -->
+        <main id="main-content" class="hidden">
+            <!-- Popular Videos Section -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold border-l-4 border-red-500 pl-3 mb-4">Top 100 Popular Videos</h2>
+                <div id="videos-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    <!-- Video cards will be dynamically added here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- YouTube IFrame Player API Script -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        // =================================================================
+        // Configuration
+        // =================================================================
+        const API_KEY = "AIzaSyBF-m1UvlpYjCwSNFEE1hmJPx0R4-8qWUM";
+
+        const videoContainer = document.getElementById('videos-grid');
+        const countrySelect = document.getElementById('country-select');
+        const clearCacheBtn = document.getElementById('clear-cache-btn');
+        const loader = document.getElementById('loader');
+        const mainContent = document.getElementById('main-content');
+        const updateTimeEl = document.getElementById('update-time');
+        
+        const modal = document.getElementById('player-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        let player; // YouTube player instance
+
+        // =================================================================
+        // Initialization & Event Listeners
+        // =================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRankingData(countrySelect.value, false);
+        });
+
+        countrySelect.addEventListener('change', (e) => {
+            loadRankingData(e.target.value, false);
+        });
+        
+        clearCacheBtn.addEventListener('click', () => {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('youtube_rank_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            alert('Browser cache has been cleared. Fetching new data.');
+            loadRankingData(countrySelect.value, true);
+        });
+
+        // Separated the modal closing logic into a function
+        function closeModal() {
+            if (player && typeof player.stopVideo === 'function') {
+                player.stopVideo();
+            }
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        // Close modal on button click
+        closeModalBtn.addEventListener('click', closeModal);
+
+        // Optional: Close modal on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // =================================================================
+        // Data Loading & Caching
+        // =================================================================
+        async function loadRankingData(regionCode, forceRefresh) {
+            showLoader();
+            const today = new Date().toLocaleDateString('en-US');
+            const cacheKey = `youtube_rank_top100_${regionCode}`; 
+            
+            try {
+                const cachedData = JSON.parse(localStorage.getItem(cacheKey));
+                
+                if (!forceRefresh && cachedData && cachedData.date === today) {
+                    console.log(`[${regionCode}] Using cached data.`);
+                    displayData(cachedData.data, cachedData.updateTime);
+                } else {
+                    console.log(`[${regionCode}] Fetching new data from API. (Force Refresh: ${forceRefresh})`);
+                    const videos = await fetchVideosFromAPI(regionCode);
+                    const updateTime = new Date().toLocaleString('en-US');
+
+                    const dataToCache = {
+                        date: today,
+                        updateTime: updateTime,
+                        data: videos
+                    };
+                    localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
+                    
+                    displayData(videos, updateTime);
+                }
+            } catch (error) {
+                console.error("Error loading data:", error);
+                let alertMessage = `Failed to load data. Please try again later.`;
+                if (error.message.includes('API key not valid')) {
+                    alertMessage = 'Failed to load data: The API key is not valid. Please check the API_KEY in the code.';
+                } else if (error.message.includes('quotaExceeded')) {
+                    alertMessage = 'Failed to load data: YouTube API quota exceeded. Please try again tomorrow.';
+                }
+                alert(alertMessage);
+                hideLoader();
+            }
+        }
+        
+        function displayData(videos, updateTime) {
+            updateTimeEl.textContent = `Data updated: ${updateTime}`;
+            renderVideos(videos, videoContainer);
+            hideLoader();
+        }
+
+        // =================================================================
+        // YouTube API Interaction
+        // =================================================================
+        async function fetchVideosFromAPI(regionCode) {
+            let videoIds = [];
+            let nextPageToken = '';
+            const MAX_RESULTS_PER_PAGE = 50;
+            const PAGES_TO_FETCH = 2; // 50 * 2 = 100 videos
+
+            for (let i = 0; i < PAGES_TO_FETCH; i++) {
+                let popularVideosUrl = `https://www.googleapis.com/youtube/v3/videos?part=id&chart=mostPopular&maxResults=${MAX_RESULTS_PER_PAGE}&key=${API_KEY}&pageToken=${nextPageToken}`;
+                if (regionCode !== 'WW') {
+                    popularVideosUrl += `&regionCode=${regionCode}`;
+                }
+                
+                const response = await fetch(popularVideosUrl);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error (${response.status}): ${errorData.error.message}`);
+                }
+                const data = await response.json();
+                
+                const ids = data.items.map(item => item.id);
+                videoIds.push(...ids);
+                nextPageToken = data.nextPageToken;
+                if (!nextPageToken) break;
+            }
+
+            const allVideoDetails = [];
+            for (let i = 0; i < videoIds.length; i += MAX_RESULTS_PER_PAGE) {
+                const chunk = videoIds.slice(i, i + MAX_RESULTS_PER_PAGE);
+                const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${chunk.join(',')}&key=${API_KEY}`;
+                const detailsResponse = await fetch(videoDetailsUrl);
+                if (!detailsResponse.ok) {
+                    const errorData = await detailsResponse.json();
+                    throw new Error(`API Error on fetching details (${detailsResponse.status}): ${errorData.error.message}`);
+                }
+                const detailsData = await detailsResponse.json();
+                allVideoDetails.push(...detailsData.items);
+            }
+            
+            // Sort by view count
+            allVideoDetails.sort((a, b) => parseInt(b.statistics.viewCount) - parseInt(a.statistics.viewCount));
+
+            return allVideoDetails.slice(0, 100);
+        }
+        
+        // =================================================================
+        // UI Rendering
+        // =================================================================
+        function renderVideos(videos, container) {
+            container.innerHTML = '';
+
+            if (!videos || videos.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-gray-500 text-center py-8">No Top 100 videos found for this region.</div>`;
+                return;
+            }
+            
+            videos.forEach((video, index) => {
+                const videoCard = createVideoCard(video, index + 1);
+                container.innerHTML += videoCard;
+            });
+
+            container.querySelectorAll('.video-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const videoId = card.dataset.videoId;
+                    openPlayer(videoId);
+                });
+            });
+        }
+        
+        function createVideoCard(video, rank) {
+            const title = video.snippet.title;
+            const channelTitle = video.snippet.channelTitle;
+            const viewCount = formatViewCount(video.statistics.viewCount);
+            const thumbnailUrl = video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default.url;
+
+            return `
+                <div class="video-card cursor-pointer group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow" data-video-id="${video.id}">
+                    <div class="relative">
+                        <img src="${thumbnailUrl}" alt="${title}" class="w-full h-auto object-cover" loading="lazy">
+                        <div class="absolute top-1 left-1 bg-black bg-opacity-60 text-white text-sm font-bold px-2 py-1 rounded">${rank}</div>
+                        <div class="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-1.5 py-0.5 rounded">${viewCount}</div>
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-semibold text-sm truncate group-hover:text-blue-600">${title}</h3>
+                        <p class="text-xs text-gray-500 mt-1 truncate">${channelTitle}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showLoader() {
+            loader.classList.remove('hidden');
+            mainContent.classList.add('hidden');
+        }
+
+        function hideLoader() {
+            loader.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        }
+
+        // =================================================================
+        // YouTube Player
+        // =================================================================
+        function openPlayer(videoId) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (player && typeof player.loadVideoById === 'function') {
+                player.loadVideoById(videoId);
+            } else {
+                if (player && typeof player.destroy === 'function') {
+                    player.destroy();
+                }
+                player = new YT.Player('player', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: { 'playsinline': 1, 'autoplay': 1, 'controls': 1 },
+                    events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
+                });
+            }
+        }
+        
+        function onPlayerReady(event) {
+            event.target.playVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            // Close modal when video ends (0)
+            if (event.data == YT.PlayerState.ENDED) {
+                closeModal();
+            }
+        }
+
+        // =================================================================
+        // Utility Functions
+        // =================================================================
+        function formatViewCount(views) {
+            if(!views) return 'N/A';
+            const num = parseInt(views);
+            if (num >= 1000000000) {
+                return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B views';
+            }
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M views';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K views';
+            }
+            return num.toLocaleString('en-US') + ' views';
+        }
+    </script>
+</body>
+</html>
